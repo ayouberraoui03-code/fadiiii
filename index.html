@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Music Card</title>
+
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg: #0b1020;
+    --card: rgba(255,255,255,.08);
+    --card2: rgba(255,255,255,.12);
+    --stroke: rgba(255,255,255,.14);
+    --txt: rgba(255,255,255,.92);
+    --muted: rgba(255,255,255,.70);
+    --shadow: 0 22px 60px rgba(0,0,0,.45);
+    --r: 22px;
+  }
+
+  body{
+    min-height:100vh;
+    display:grid;
+    place-items:center;
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    color: var(--txt);
+    background: radial-gradient(1200px 600px at 20% 20%, rgba(99,102,241,.35), transparent 55%),
+                radial-gradient(1000px 560px at 85% 35%, rgba(16,185,129,.30), transparent 55%),
+                radial-gradient(900px 520px at 50% 95%, rgba(244,63,94,.22), transparent 55%),
+                var(--bg);
+    overflow-x:hidden;
+    padding: 18px;
+  }
+
+  /* floating blobs (light) */
+  .blob{
+    position: fixed;
+    width: 320px; height: 320px;
+    filter: blur(35px);
+    opacity: .35;
+    border-radius: 50%;
+    z-index:-1;
+    animation: drift 9s ease-in-out infinite;
+    transform: translate3d(0,0,0);
+  }
+  .b1{ left:-80px; top: 40px; background: rgba(99,102,241,.9); }
+  .b2{ right:-90px; top: 120px; background: rgba(16,185,129,.9); animation-delay: -2.5s; }
+  .b3{ left: 15%; bottom: -130px; background: rgba(244,63,94,.9); animation-delay: -4.5s; }
+
+  @keyframes drift{
+    0%,100%{ transform: translate3d(0,0,0) scale(1); }
+    50%{ transform: translate3d(18px,-16px,0) scale(1.08); }
+  }
+
+  .wrap{
+    width: min(460px, 100%);
+    display:grid;
+    gap: 14px;
+    animation: pop .7s cubic-bezier(.2,.9,.2,1) both;
+  }
+  @keyframes pop{
+    from{ opacity:0; transform: translateY(14px) scale(.985); }
+    to{ opacity:1; transform: translateY(0) scale(1); }
+  }
+
+  .header{
+    text-align:center;
+    display:grid;
+    gap:6px;
+  }
+  .title{
+    font-size: clamp(22px, 5.4vw, 34px);
+    letter-spacing: .3px;
+  }
+  .sub{
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .card{
+    background: linear-gradient(180deg, var(--card2), var(--card));
+    border: 1px solid var(--stroke);
+    border-radius: var(--r);
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(12px);
+    overflow:hidden;
+  }
+
+  /* IMAGE AREA */
+  .media{
+    position: relative;
+    padding: 14px;
+  }
+
+  .frame{
+    position: relative;
+    border-radius: 18px;
+    overflow:hidden;
+    border: 1px solid rgba(255,255,255,.14);
+    box-shadow: 0 18px 50px rgba(0,0,0,.35);
+    transform: translateZ(0);
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .photo{
+    width:100%;
+    display:block;
+    transform: scale(1.02);
+    filter: grayscale(1) contrast(1.05) brightness(.98);
+    transition: filter .55s ease, transform .55s ease;
+  }
+
+  /* reveal color on tap (class added by JS) */
+  .frame.reveal .photo{
+    filter: grayscale(0) contrast(1.08) brightness(1.03);
+    transform: scale(1.06);
+  }
+
+  /* shine sweep */
+  .shine{
+    position:absolute;
+    inset:-40%;
+    background: linear-gradient(110deg,
+      transparent 42%,
+      rgba(255,255,255,.40) 50%,
+      transparent 58%);
+    transform: translateX(-70%);
+    opacity:0;
+    pointer-events:none;
+  }
+  .frame.reveal .shine{
+    opacity:1;
+    animation: shineMove 1.05s ease;
+  }
+  @keyframes shineMove{
+    from{ transform: translateX(-70%); }
+    to{ transform: translateX(70%); }
+  }
+
+  /* ripple */
+  .ripple{
+    position:absolute;
+    width: 12px; height: 12px;
+    border-radius: 999px;
+    border: 2px solid rgba(255,255,255,.65);
+    transform: translate(-50%,-50%) scale(1);
+    opacity:0;
+    pointer-events:none;
+  }
+  .frame.reveal .ripple{
+    animation: ripple 0.9s ease;
+    opacity:1;
+  }
+  @keyframes ripple{
+    0%{ transform: translate(-50%,-50%) scale(.2); opacity:.9; }
+    100%{ transform: translate(-50%,-50%) scale(18); opacity:0; }
+  }
+
+  /* PLAYER AREA */
+  .player{
+    padding: 0 14px 14px;
+    display:grid;
+    gap: 12px;
+  }
+
+  .pill{
+    margin-top: -2px;
+    display:inline-flex;
+    align-items:center;
+    gap:10px;
+    padding: 10px 12px;
+    width: fit-content;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,.14);
+    background: rgba(255,255,255,.08);
+  }
+  .dot{
+    width:10px;height:10px;border-radius:50%;
+    background: rgba(14,165,233,1);
+    box-shadow: 0 0 0 0 rgba(14,165,233,.45);
+    animation: pulse 1.4s infinite;
+  }
+  @keyframes pulse{
+    0%{ box-shadow: 0 0 0 0 rgba(14,165,233,.45); }
+    70%{ box-shadow: 0 0 0 14px rgba(14,165,233,0); }
+    100%{ box-shadow: 0 0 0 0 rgba(14,165,233,0); }
+  }
+
+  .controls{
+    display:flex;
+    gap: 12px;
+    align-items:center;
+  }
+
+  .btn{
+    flex:1;
+    border: 0;
+    border-radius: 16px;
+    padding: 14px 14px;
+    font-weight: 800;
+    font-size: 16px;
+    color: rgba(255,255,255,.95);
+    background: linear-gradient(135deg, rgba(99,102,241,.95), rgba(244,63,94,.85));
+    box-shadow: 0 18px 45px rgba(0,0,0,.35);
+    cursor:pointer;
+    user-select:none;
+    -webkit-tap-highlight-color: transparent;
+    transform: translateZ(0);
+    transition: transform .12s ease, filter .12s ease, opacity .12s ease;
+    position: relative;
+    overflow:hidden;
+  }
+  .btn:active{ transform: scale(.985); opacity:.95; }
+
+  /* pulse when paused */
+  .btn.pulse{
+    animation: btnPulse 1.2s ease-in-out infinite;
+  }
+  @keyframes btnPulse{
+    0%,100%{ filter: brightness(1); transform: translateZ(0) scale(1); }
+    50%{ filter: brightness(1.12); transform: translateZ(0) scale(1.015); }
+  }
+
+  .btnSecondary{
+    flex: .9;
+    background: rgba(255,255,255,.10);
+    color: rgba(255,255,255,.92);
+    border: 1px solid rgba(255,255,255,.14);
+    box-shadow: 0 14px 34px rgba(0,0,0,.25);
+  }
+
+  /* progress bar */
+  .progress{
+    height: 10px;
+    border-radius: 999px;
+    background: rgba(255,255,255,.10);
+    border: 1px solid rgba(255,255,255,.12);
+    overflow:hidden;
+  }
+  .bar{
+    height:100%;
+    width:0%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, rgba(16,185,129,.95), rgba(99,102,241,.95), rgba(244,63,94,.85));
+    transition: width .15s linear;
+  }
+
+  .meta{
+    display:flex;
+    justify-content:space-between;
+    font-variant-numeric: tabular-nums;
+    font-weight:700;
+    color: rgba(255,255,255,.78);
+    font-size: 13px;
+  }
+
+  /* equalizer */
+  .eq{
+    display:flex;
+    gap:7px;
+    align-items:flex-end;
+    height: 22px;
+    opacity:.75;
+    margin-top: -2px;
+  }
+  .eq span{
+    width: 6px;
+    height: 8px;
+    border-radius: 999px;
+    background: rgba(255,255,255,.55);
+    transform-origin: bottom;
+    animation: bounce .85s infinite ease-in-out;
+    animation-play-state: paused;
+  }
+  .eq span:nth-child(2){ animation-delay:.10s }
+  .eq span:nth-child(3){ animation-delay:.20s }
+  .eq span:nth-child(4){ animation-delay:.32s }
+  .eq span:nth-child(5){ animation-delay:.18s }
+
+  @keyframes bounce{
+    0%,100%{ transform: scaleY(.5); }
+    50%{ transform: scaleY(2.0); }
+  }
+
+  .playing .eq span{ animation-play-state: running; }
+
+  /* footer hint */
+  .hint{
+    color: rgba(255,255,255,.62);
+    font-size: 12px;
+    line-height:1.35;
+  }
+
+  /* hide native audio */
+  audio{ display:none; }
+
+  /* reduce motion (accessibility) */
+  @media (prefers-reduced-motion: reduce){
+    .blob, .wrap, .btn.pulse, .eq span, .dot{ animation:none !important; }
+    .photo, .btn{ transition:none !important; }
+  }
+</style>
+</head>
+
+<body>
+  <div class="blob b1"></div>
+  <div class="blob b2"></div>
+  <div class="blob b3"></div>
+
+  <div class="wrap">
+    <div class="header">
+      <div class="title">matkounsh bhel fadi</div>
+      <div class="sub">werek ela tswira bash tlewen ✨</div>
+    </div>
+
+    <div class="card" id="card">
+      <div class="media">
+        <div class="frame" id="frame">
+          <img id="photo" class="photo" src="images/fadi.jpeg" alt="Photo">
+          <div class="shine"></div>
+          <div class="ripple" id="ripple"></div>
+        </div>
+      </div>
+
+      <div class="player">
+        <div class="pill">
+          <span class="dot"></span>
+          <span>🎵 Player Pro</span>
+        </div>
+
+        <div class="controls">
+          <button class="btn pulse" id="playBtn" type="button">▶️ Play</button>
+          <button class="btn btnSecondary" id="restartBtn" type="button">⏮️ 0:28</button>
+        </div>
+
+        <div class="progress">
+          <div class="bar" id="bar"></div>
+        </div>
+
+        <div class="meta">
+          <div id="timeNow">0:28</div>
+          <div id="timeEnd">--:--</div>
+        </div>
+
+        <div class="eq" aria-hidden="true">
+          <span></span><span></span><span></span><span></span><span></span>
+        </div>
+
+     
+
+        <audio id="audio" preload="auto">
+          <source src="audio/song.mp3" type="audio/mpeg">
+        </audio>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const audio = document.getElementById("audio");
+  const playBtn = document.getElementById("playBtn");
+  const restartBtn = document.getElementById("restartBtn");
+  const bar = document.getElementById("bar");
+  const timeNow = document.getElementById("timeNow");
+  const timeEnd = document.getElementById("timeEnd");
+  const card = document.getElementById("card");
+
+  const frame = document.getElementById("frame");
+  const ripple = document.getElementById("ripple");
+
+  const START = 28; // 0:28
+
+  function fmt(t){
+    t = Math.max(0, Math.floor(t || 0));
+    const m = Math.floor(t/60);
+    const s = String(t%60).padStart(2,"0");
+    return `${m}:${s}`;
+  }
+
+  function setUIPlaying(isPlaying){
+    if(isPlaying){
+      playBtn.textContent = "⏸️ Pause";
+      playBtn.classList.remove("pulse");
+      card.classList.add("playing");
+    }else{
+      playBtn.textContent = "▶️ Play";
+      playBtn.classList.add("pulse");
+      card.classList.remove("playing");
+    }
+  }
+
+  // Tap animation on image (works on phone)
+  function revealAt(x, y){
+    const rect = frame.getBoundingClientRect();
+    const px = ((x - rect.left) / rect.width) * 100;
+    const py = ((y - rect.top) / rect.height) * 100;
+
+    ripple.style.left = px + "%";
+    ripple.style.top  = py + "%";
+
+    frame.classList.add("reveal");
+    clearTimeout(frame._t);
+    frame._t = setTimeout(()=> frame.classList.remove("reveal"), 950);
+  }
+
+  frame.addEventListener("pointerdown", (e) => {
+    revealAt(e.clientX, e.clientY);
+  });
+
+  // Init start time
+  window.addEventListener("load", () => {
+    audio.currentTime = START;
+    timeNow.textContent = fmt(START);
+  });
+
+  // Play/Pause button
+  playBtn.addEventListener("click", async () => {
+    if(audio.paused){
+      if(audio.currentTime < START) audio.currentTime = START;
+      try{
+        await audio.play();
+        setUIPlaying(true);
+      }catch(e){
+        // Autoplay policy / blocked until user gesture (should be OK since it's a click)
+        setUIPlaying(false);
+      }
+    }else{
+      audio.pause();
+      setUIPlaying(false);
+    }
+  });
+
+  // Restart to 0:28
+  restartBtn.addEventListener("click", async () => {
+    audio.currentTime = START;
+    try{ await audio.play(); setUIPlaying(true); }catch(e){ setUIPlaying(false); }
+  });
+
+  // Progress & time
+  audio.addEventListener("loadedmetadata", () => {
+    timeEnd.textContent = fmt(audio.duration);
+  });
+
+  audio.addEventListener("timeupdate", () => {
+    const dur = audio.duration || 0;
+    const cur = audio.currentTime || 0;
+    if(dur) bar.style.width = (cur/dur*100) + "%";
+    timeNow.textContent = fmt(Math.max(cur, START));
+  });
+
+  audio.addEventListener("play", () => setUIPlaying(true));
+  audio.addEventListener("pause", () => setUIPlaying(false));
+  audio.addEventListener("ended", () => setUIPlaying(false));
+</script>
+</body>
+</html>
